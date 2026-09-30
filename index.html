@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Raiway Demo</title>
+  <link rel="icon" href="data:,">
+</head>
+<body>
+  <div id="view"></div>
+  <div id="loading">Loading…</div>
+  <div id="banner" hidden></div>
+
+  <aside id="panel">
+    <h1>Raiway</h1>
+    <p class="sub">Perceptive wheel-legged locomotion, trained in RaiSim and running in MuJoCo in your browser.</p>
+
+    <label class="row">Terrain
+      <select id="terrain">
+        <option value="stairs" selected>Stairs</option>
+        <option value="holes">Holes</option>
+        <option value="hurdles">Hurdles</option>
+        <option value="flat">Flat</option>
+      </select>
+    </label>
+    <label class="slider">Terrain level <span id="level-v"></span> <em id="level-d"></em>
+      <input id="level" type="range" min="0" max="1" step="0.05" value="1"></label>
+
+    <p class="hint">W/S or ↑/↓: drive · A/D or ←/→: turn</p>
+
+    <label class="slider">Max speed <span id="vmax-v"></span> m/s
+      <input id="vmax" type="range" min="0.5" max="3.0" step="0.05" value="1.5"></label>
+    <label class="slider">Max yaw rate <span id="wmax-v"></span> rad/s
+      <input id="wmax" type="range" min="0.5" max="3.0" step="0.05" value="1.0"></label>
+    <label class="slider">Restitution <span id="rest-v"></span>
+      <input id="rest" type="range" min="0" max="0.5" step="0.01" value="0.2"></label>
+    <label class="slider">Restitution threshold <span id="thres-v"></span> m/s
+      <input id="thres" type="range" min="0" max="0.2" step="0.01" value="0.1"></label>
+    <label class="slider">Sim speed <span id="slow-v"></span>×
+      <input id="slow" type="range" min="0.1" max="1" step="0.05" value="1"></label>
+
+    <div class="row checks">
+      <label><input type="checkbox" id="scan"> Height scan</label>
+      <label><input type="checkbox" id="follow" checked> Follow</label>
+    </div>
+    <div class="row buttons">
+      <button id="reset">Reset (R)</button>
+      <button id="pause">Pause</button>
+    </div>
+
+    <dl id="hud">
+      <dt>Command</dt><dd id="hud-cmd">–</dd>
+      <dt>Measured</dt><dd id="hud-act">–</dd>
+      <dt>Estimated v<sub>x</sub></dt><dd id="hud-est">–</dd>
+      <dt>Real-time</dt><dd id="hud-rt">–</dd>
+    </dl>
+    <p class="foot">Policy <code id="checkpoint"></code></p>
+  </aside>
+
+  <div id="joystick"><div class="knob"></div></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
