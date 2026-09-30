@@ -1,6 +1,6 @@
 # Raiway browser demo
 
-The Raiway wheel-legged perceptive policy, trained in RaiSim (`raisimGymForSegway`), running live in the browser:
+The Raiway wheel-legged perceptive policy, trained in RaiSim2 (`raisimGymForSegway`), running live in the browser:
 MuJoCo WASM (`@mujoco/mujoco`) for physics, onnxruntime-web for the policy and three.js for rendering. Nothing
 runs on a server; the built `dist/` is a static site.
 
