@@ -1,13 +1,5 @@
-export const CONTACT_TIMECONST = 0.02;
-export const BOUNCE_WINDOW = 0.04;
 export const HFIELD_Z_LO = -1.0, HFIELD_Z_RANGE = 4.0;
 const TERRAIN_CONTACT_BODIES = ['Segway_L_WHEEL', 'Segway_R_WHEEL', 'Segway_L_SHANK', 'Segway_R_SHANK'];
-
-export function restitutionDampratio(coeff) {
-  if (coeff <= 1e-6) return 1.0;
-  const lnE = Math.log(Math.min(coeff, 0.999));
-  return -lnE / Math.sqrt(Math.PI ** 2 + lnE ** 2);
-}
 
 export function sceneXml(terrain, dt) {
   const rx = (terrain.nx - 1) * terrain.res / 2, ry = (terrain.ny - 1) * terrain.res / 2;
@@ -33,16 +25,12 @@ export class RaiwaySim {
     this.substeps = Math.round(cfg.control_dt / cfg.simulation_dt);
     this.baseId = m.body('Segway_TORSO').id;
     this.wheelIds = [m.body('Segway_L_WHEEL').id, m.body('Segway_R_WHEEL').id];
-    this.tireGeoms = [m.geom('Segway_L_WHEEL_tire').id, m.geom('Segway_R_WHEEL_tire').id];
     this.terrainGeom = m.geom('terrain').id;
     const allowed = new Set(TERRAIN_CONTACT_BODIES.map((n) => m.body(n).id));
     this.forbidden = new Set();
     for (let g = 0; g < m.ngeom; g++) {
       if (!allowed.has(m.geom_bodyid[g]) && g !== this.terrainGeom) this.forbidden.add(g);
-      m.geom_solref[2 * g] = CONTACT_TIMECONST;
-      m.geom_solref[2 * g + 1] = 1.0;
     }
-    this.restitution = { ...cfg.restitution };
     const h = cfg.est_history;
     this.histDepth = 1 + (h.len - 1) * h.stride;
     if (cfg.scan_type === 3) {
@@ -50,7 +38,6 @@ export class RaiwaySim {
       cfg.scan_rings.points.forEach((n, k) => { for (let j = 0; j < n; j++) this.ringOffsets.push([k, j, n]); });
     }
     this.scanPoints = new Float32Array(2 * cfg.scan_n * 3);
-    this.velBuf = new mj.DoubleBuffer(6);
     this.command = [0, 0, 0];
     this.setTerrain(terrain);
   }
@@ -82,10 +69,7 @@ export class RaiwaySim {
     this.jointPosTarget = cfg.nominal_joint.slice();
     this.jointVelTarget = [0, 0, 0, 0, 0, 0];
     this.history = null;
-    this.inContact = [false, false];
-    this.contactTime = [0, 0];
     this.estimate = new Array(cfg.est_dim).fill(0);
-    this.updateRestitution();
   }
 
   tireCenter(i) {
@@ -171,24 +155,8 @@ export class RaiwaySim {
     return out;
   }
 
-  updateRestitution() {
-    const { mj, model: m, data: d } = this;
-    const bouncy = restitutionDampratio(this.restitution.coeff);
-    for (let i = 0; i < 2; i++) {
-      const g = this.tireGeoms[i];
-      if (this.inContact[i]) {
-        this.contactTime[i] += m.opt.timestep;
-        if (this.contactTime[i] > BOUNCE_WINDOW) m.geom_solref[2 * g + 1] = 1.0;
-        continue;
-      }
-      this.contactTime[i] = 0;
-      mj.mj_objectVelocity(m, d, mj.mjtObj.mjOBJ_BODY.value, this.wheelIds[i], this.velBuf, 0);
-      m.geom_solref[2 * g + 1] = -this.velBuf.GetView()[5] > this.restitution.threshold ? bouncy : 1.0;
-    }
-  }
-
-  contacts() {
-    const d = this.data, tire = [false, false];
+  touchesForbidden() {
+    const d = this.data;
     let bad = false;
     const vec = d.contact;
     for (let k = 0; k < d.ncon; k++) {
@@ -196,13 +164,10 @@ export class RaiwaySim {
       const g1 = c.geom1, g2 = c.geom2;
       c.delete();
       if (g1 !== this.terrainGeom && g2 !== this.terrainGeom) continue;
-      const other = g1 === this.terrainGeom ? g2 : g1;
-      const ti = this.tireGeoms.indexOf(other);
-      if (ti >= 0) tire[ti] = true;
-      else if (this.forbidden.has(other)) bad = true;
+      if (this.forbidden.has(g1 === this.terrainGeom ? g2 : g1)) bad = true;
     }
     vec.delete();
-    return { tire, bad };
+    return bad;
   }
 
   async step(vx, wz) {
@@ -230,10 +195,7 @@ export class RaiwaySim {
         d.qfrc_applied[6 + j] = Math.min(Math.max(tau, -lim), lim);
       }
       mj.mj_step(m, d);
-      const { tire, bad } = this.contacts();
-      this.inContact = tire;
-      this.updateRestitution();
-      if (bad || this.data.xmat[9 * this.baseId + 8] < 0.5) return true;
+      if (this.touchesForbidden() || this.data.xmat[9 * this.baseId + 8] < 0.5) return true;
     }
     return false;
   }

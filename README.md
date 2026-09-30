@@ -42,7 +42,7 @@ python sim2sim.py -t stairs -l 1.0 --vx 1.0 [--view]  # Python MuJoCo rollout; t
   `command` (vx, wz), and outputs `action` and the denormalized `estimate`. The observation and estimator-input
   normalization is baked in, so callers pass unnormalized values.
 - `raiway.xml`: the URDF converted to MJCF at the nominal wheel parameters, with `rotor_inertia` as armature.
-- `meshes/`, `config.json`: visual meshes; dims, scan layout, PD gains, action scaling and the restitution threshold.
+- `meshes/`, `config.json`: visual meshes; dims, scan layout, PD gains and action scaling.
 
 Line and ring actor scans are both supported; the layout is read off the checkpoint's normalizer.
 
@@ -50,26 +50,25 @@ Line and ring actor scans are both supported; the layout is read off the checkpo
 
 Every randomization is left out, the URDF ones included. Beyond that:
 
-- MuJoCo contacts are soft (`solref` time constant 0.02s, elliptic cone, `impratio` 10).
+- Contacts use MuJoCo's default soft-contact parameters, with an elliptic friction cone and `impratio` 10 to limit
+  wheel creep; with the default pyramidal cone the stairs descent at 1.5 m/s falls.
 - The terrain is an hfield on the same 0.02m grid as training, and the height scan reads it bilinearly.
 - The wheel's axle inertia is kept; its other two diagonal terms are raised to satisfy MuJoCo's triangle inequality.
-- MuJoCo has no restitution coefficient. A tire whose approach speed exceeds the restitution threshold touches down
-  with a contact damping ratio of -ln e / sqrt(π² + ln² e), held for 0.04s and then reset to 1. A drop test
-  rebounds at about the requested coefficient, and the short window keeps the robot off an underdamped spring
-  while it stands.
+- There is no restitution: MuJoCo has no restitution coefficient, and emulating one by switching the contact
+  damping at touchdown produced unnatural rebounds, so impacts follow MuJoCo's contact model.
 
 On flat ground the `2026-09-25-10-42-26-5444` checkpoint (`full_50000.pt`) tracks the same velocity as in RaiSim
 (vx 1.00 m/s in MuJoCo and 1.01 m/s in RaiSim for a 1.0 m/s command), and the JS and Python ports agree to four
 digits there; on stairs they drift apart slowly, as the rollout amplifies rounding differences at the step edges.
 
-At level 1 the robot crosses stairs, holes and hurdles for 10s at 1.0 m/s and restitution 0.2. At 1.5 m/s holes and
-hurdles still pass with restitution 0 and 0.2, and the stairs descent falls with 0.2 but passes with 0. With the
-hurdles 1m apart the robot cleared five at 1.0 m/s and then turned away along the row, which is why they are 1.5m.
+At level 1 the robot crosses stairs, holes and hurdles for 10s at both 1.0 and 1.5 m/s. On flat ground a 2.0 rad/s
+turn command is tracked at 2.0 rad/s at 1.0 m/s and at 1.8 rad/s at 1.5 m/s. With the hurdles 1m apart the robot
+cleared five at 1.0 m/s and then turned away along the row, which is why they are 1.5m.
 
 ## Layout
 
-- `src/sim.js`: MuJoCo stepping, PD control, the actor observation, estimator history and the restitution
-  emulation. It is a line-by-line port of `sim2sim/raiway_mujoco.py`; a change to the actor observation, scan
+- `src/sim.js`: MuJoCo stepping, PD control, the actor observation, estimator history and
+  termination. It is a line-by-line port of `sim2sim/raiway_mujoco.py`; a change to the actor observation, scan
   layout or action scaling in the training repo has to be mirrored in both.
 - `src/terrain.js`: terrain grids, parameterized by terrain level, that drive both the hfield and the height scan.
   The hfield spans -1m to 3m. `sim2sim/terrain.py` matches it except for the random stone layout of `holes`.
@@ -79,7 +78,7 @@ hurdles 1m apart the robot cleared five at 1.0 m/s and then turned away along th
 ## Checks
 
 ```bash
-npm run test:headless -- stairs 1.0 0 10 0.2 1.0   # terrain vx wz seconds [restitution|-] [level]; Node, no browser
+npm run test:headless -- stairs 1.0 0 10 1.0   # terrain vx wz seconds [level]; Node, no browser
 npm run test:browser                       # builds, drives headless Chrome, writes test/screenshot.png
 ```
 

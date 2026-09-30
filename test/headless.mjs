@@ -5,7 +5,7 @@ import * as ort from 'onnxruntime-web';
 import { TERRAINS } from '../src/terrain.js';
 import { RaiwaySim } from '../src/sim.js';
 
-const [terrainName = 'flat', vx = '1.0', wz = '0.0', seconds = '8', coeff, level = '1.0'] = process.argv.slice(2);
+const [terrainName = 'flat', vx = '1.0', wz = '0.0', seconds = '8', level = '1.0'] = process.argv.slice(2);
 const assets = path.resolve(import.meta.dirname, '../public/model');
 const mj = await loadMujoco();
 const vfs = new mj.MjVFS();
@@ -16,7 +16,6 @@ const cfg = JSON.parse(fs.readFileSync(path.join(assets, 'config.json')));
 ort.env.wasm.numThreads = 1;
 const session = await ort.InferenceSession.create(fs.readFileSync(path.join(assets, 'policy.onnx')));
 const sim = new RaiwaySim(mj, vfs, cfg, session, ort, TERRAINS[terrainName](Number(level)));
-if (coeff !== undefined && coeff !== '-') sim.restitution.coeff = Number(coeff);
 sim.reset();
 const t0 = performance.now();
 for (let k = 0; k < 100; k++) await sim.step(0, 0);

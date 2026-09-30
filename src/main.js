@@ -82,18 +82,15 @@ async function main() {
   viewer.scan.visible = $('scan').checked;
   $('scan').addEventListener('change', (e) => { viewer.scan.visible = e.target.checked; });
   $('follow').addEventListener('change', (e) => { viewer.follow = e.target.checked; });
-  for (const id of ['vmax', 'wmax', 'rest', 'thres', 'slow']) {
+  for (const id of ['vmax', 'wmax', 'slow']) {
     const input = $(id), out = $(id + '-v');
     const sync = () => {
       out.textContent = Number(input.value).toFixed(2);
-      if (id === 'rest') sim.restitution.coeff = Number(input.value);
-      if (id === 'thres') sim.restitution.threshold = Number(input.value);
       if (id === 'slow') state.speed = Number(input.value);
     };
     input.addEventListener('input', sync);
     sync();
   }
-  $('thres').value = cfg.restitution.threshold; $('thres').dispatchEvent(new Event('input'));
   const DRIVE_KEYS = new Set(['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright']);
   window.addEventListener('keydown', (e) => {
     const key = e.key.toLowerCase();
