@@ -149,7 +149,6 @@ async function main() {
     const { lin, ang } = sim.bodyVelocity();
     $('hud-cmd').textContent = `${state.cmd[0].toFixed(2)} m/s  ${state.cmd[1].toFixed(2)} rad/s`;
     $('hud-act').textContent = `${lin[0].toFixed(2)} m/s  ${ang[2].toFixed(2)} rad/s`;
-    $('hud-est').textContent = `${sim.estimate[0].toFixed(2)} m/s`;
     wallClock += dt;
     if (wallClock > 1) {
       $('hud-rt').textContent = `${(simClock / wallClock).toFixed(2)}×`;
