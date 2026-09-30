@@ -21,6 +21,8 @@ The terrain level slider (default 1) uses the training formulas of `Environment.
 
 - Stairs: step height 0.02 + 0.28·level (0.30m at level 1), tread max(height / tan 35°, 0.3) + 0.1m, eight steps
   up from 0.75m past the spawn, a 2m landing, then eight steps down. Training has no descent on this terrain.
+- Steps: square blocks with heights U(0, 0.05 + 0.25·level) (up to 0.30m at level 1), as in `STEPS`. Training
+  samples the block width from U(0.3, 0.5)m per episode; here it is 0.4m. Training has no flat spawn zone either.
 - Holes: depth 0.05 + 0.75·level², two independent 3m lanes with gaps U(0.4, 0.7)m, landings U(0.3, 0.6)m and
   landing heights U(-0.1, 0.1)m, and a flat 1.5m spawn strip.
 - Hurdles: 0.05m thick, from 1m past the spawn, as in `HURDLES`, but 1.5m apart (the middle of the `TUK` spacing)
@@ -35,7 +37,7 @@ by hand. The script needs `mujoco`, `onnx` and `onnxruntime` in the raisim Pytho
 ```bash
 cd ../raisimGymForSegway/raisimGymForSegway/sim2sim
 python export_demo.py -w <RUN>/full_XXX.pt          # writes ../../../raiway_demo/public/model (-o overrides)
-python sim2sim.py -t stairs -l 1.0 --vx 1.0 [--view]  # Python MuJoCo rollout; terrains: flat, stairs, holes, hurdles
+python sim2sim.py -t stairs -l 1.0 --vx 1.0 [--view]  # Python MuJoCo rollout; terrains: flat, stairs, steps, holes, hurdles
 ```
 
 - `policy.onnx`: one graph with inputs `obs` (raw actor observation), `est_input` (raw estimator history) and
@@ -61,7 +63,7 @@ On flat ground the `2026-09-25-10-42-26-5444` checkpoint (`full_50000.pt`) track
 (vx 1.00 m/s in MuJoCo and 1.01 m/s in RaiSim for a 1.0 m/s command), and the JS and Python ports agree to four
 digits there; on stairs they drift apart slowly, as the rollout amplifies rounding differences at the step edges.
 
-At level 1 the robot crosses stairs, holes and hurdles for 10s at both 1.0 and 1.5 m/s. On flat ground a 2.0 rad/s
+At level 1 the robot crosses stairs, steps, holes and hurdles for 10s at both 1.0 and 1.5 m/s. On flat ground a 2.0 rad/s
 turn command is tracked at 2.0 rad/s at 1.0 m/s and at 1.8 rad/s at 1.5 m/s. With the hurdles 1m apart the robot
 cleared five at 1.0 m/s and then turned away along the row, which is why they are 1.5m.
 
@@ -71,7 +73,7 @@ cleared five at 1.0 m/s and then turned away along the row, which is why they ar
   termination. It is a line-by-line port of `sim2sim/raiway_mujoco.py`; a change to the actor observation, scan
   layout or action scaling in the training repo has to be mirrored in both.
 - `src/terrain.js`: terrain grids, parameterized by terrain level, that drive both the hfield and the height scan.
-  The hfield spans -1m to 3m. `sim2sim/terrain.py` matches it except for the random stone layout of `holes`.
+  The hfield spans -1m to 3m. `sim2sim/terrain.py` matches it except for the random layouts of `steps` and `holes`.
 - `src/render.js`: three.js scene built from the compiled MuJoCo model.
 - `src/main.js`: loading, UI, command input and the real-time loop.
 

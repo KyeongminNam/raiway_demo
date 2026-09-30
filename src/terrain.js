@@ -95,11 +95,27 @@ export function hurdles(level, { thickness = 0.05, spacing = 1.5, start = 1.0 } 
   });
 }
 
-export const TERRAINS = { flat, stairs, holes, hurdles };
+export function steps(level, { width = 0.4, seed = 0 } = {}) {
+  const maxHeight = 0.05 + 0.25 * level;
+  const cellsPerBlock = Math.floor(width / RES) + 1;
+  const nx = Math.round((X_RANGE[1] - X_RANGE[0]) / RES) + 1;
+  const ny = Math.round((Y_RANGE[1] - Y_RANGE[0]) / RES) + 1;
+  const bx = Math.ceil(nx / cellsPerBlock), by = Math.ceil(ny / cellsPerBlock);
+  const rand = mulberry32(seed + 11);
+  const blocks = Float64Array.from({ length: bx * by }, () => maxHeight * rand());
+  const h = new Float64Array(nx * ny);
+  for (let iy = 0; iy < ny; iy++)
+    for (let ix = 0; ix < nx; ix++)
+      h[iy * nx + ix] = blocks[Math.floor(iy / cellsPerBlock) * bx + Math.floor(ix / cellsPerBlock)];
+  return new Terrain(h, nx, ny);
+}
+
+export const TERRAINS = { flat, stairs, steps, holes, hurdles };
 
 export function describe(name, level) {
   const cm = (m) => `${(100 * m).toFixed(0)} cm`;
   if (name === 'stairs') return `step ${cm(0.02 + 0.28 * level)}`;
+  if (name === 'steps') return `up to ${cm(0.05 + 0.25 * level)}`;
   if (name === 'holes') return `depth ${cm(0.05 + 0.75 * level * level)}`;
   if (name === 'hurdles') return `height ${cm(0.02 + 0.28 * level)}`;
   return '';
